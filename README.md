@@ -41,7 +41,7 @@ The Project
 
 Code were put in P1.ipynb and writeup in writeup.md/README.md.
 
-As writeup.md described, in P1.ipynb, two pipelines were built. 
+As writeup.md described, in P1.ipynb, two pipelines were built.
 
 The first model performed well on white.mp4 and yellow.mp4, but not good for challenge.mp4.
 
@@ -77,21 +77,14 @@ My first pipeline mainly consisted of 4 steps, which could be described in the f
 <div class="mermaid" id="i141">
 
         graph TD
-
-        %% Example diagram
-        %%A["test(vcc) a a "] -- Link text --> B((Circle));
-        %%A --> C(Round Rect)
-        %%A --> E(- Elipse -)
-        %%click A coolAction
-        %%B --> D{Rhombus}
-        %%C --> D
-        %%A --> B
        A["Raw images"] -- "GrayScale + GaussianBlur + Canny" --> B["Canny Gradient"]
        B-- "ROI"--> C["Canny Gradient of Interest"]
        C -- "HoughLinesP" --> D["Candidate Lane Lines"]
        D -- "draw_lines()" --> E["Road Lane Lines"]
 </div>
 </div>
+
+![png](./image/FigureFlowV1.png)
 
 Next, all steps will be introduced in detail:
 
@@ -285,6 +278,8 @@ Then, the whole pipeline were rebuilt like this:
        D -- "draw_lines()" --> E["Road Lane Lines"]
 </div>
 </div>
+
+![png](./image/FigureFlowV2.png)
 
 Some parameters were also changed:
 

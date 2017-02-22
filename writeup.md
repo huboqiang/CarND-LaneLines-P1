@@ -51,38 +51,32 @@ To achieve this overall goal, this project were divided into three steps, includ
 ## 1. Identify lane lines on both left side and right side of the car on the road for several pictures
 
 
-My first pipeline mainly consisted of 4 steps, which could be described in the flowchart below: 
+My first pipeline mainly consisted of 4 steps, which could be described in the flowchart below:
 
 <div style="width:200px">
 <div class="mermaid" id="i141">
 
         graph TD
-        
-        %% Example diagram
-        %%A["test(vcc) a a "] -- Link text --> B((Circle));
-        %%A --> C(Round Rect)
-        %%A --> E(- Elipse -)
-        %%click A coolAction
-        %%B --> D{Rhombus}
-        %%C --> D
-        %%A --> B
-       A["Raw images"] -- "GrayScale + GaussianBlur + Canny" --> B["Canny Gradient"] 
+
+       A["Raw images"] -- "GrayScale + GaussianBlur + Canny" --> B["Canny Gradient"]
        B-- "ROI"--> C["Canny Gradient of Interest"]
        C -- "HoughLinesP" --> D["Candidate Lane Lines"]
-       D -- "draw_lines()" --> E["Road Lane Lines"]        
+       D -- "draw_lines()" --> E["Road Lane Lines"]
 </div>
 </div>
+
+![png](./image/FigureFlowV1.png)
 
 Next, all steps will be introduced in detail:
 
 ### 1.1. Step1:
 
-First, I converted the images to grayscale using ```cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)```, then a gaussian noise kernel was applied in the grayscaled image to smooth the border of each object in this image using ```cv2.GaussianBlur(img, (5，5))``` and the intensity gradient of the image were detected on the resulting image using ```cv2.Canny(img, 50, 150)``` .  
+First, I converted the images to grayscale using ```cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)```, then a gaussian noise kernel was applied in the grayscaled image to smooth the border of each object in this image using ```cv2.GaussianBlur(img, (5，5))``` and the intensity gradient of the image were detected on the resulting image using ```cv2.Canny(img, 50, 150)``` .
 
 
 ### 1.2. Step2:
 
-As there could be many lane lines on the road, and what we really need to focus on is only the current road lane. So a ladder-shaped vertice were applied to only keep the region defined by the polygon formed region, which we called __region of interests(ROI)__, and the rest is set to black using the function ```cv2.fillPoly(mask, vertices, ignore_mask_color)``` and ```cv2.bitwise_and(img, mask)```. 
+As there could be many lane lines on the road, and what we really need to focus on is only the current road lane. So a ladder-shaped vertice were applied to only keep the region defined by the polygon formed region, which we called __region of interests(ROI)__, and the rest is set to black using the function ```cv2.fillPoly(mask, vertices, ignore_mask_color)``` and ```cv2.bitwise_and(img, mask)```.
 
 The four nodes for this ladder shaped vertice were defined as:
 
@@ -93,7 +87,7 @@ Looks like:
 ![png](./image/FigureROI.png)
 
 
-### 1.3. Step3: 
+### 1.3. Step3:
 
 Detecting long-direct lines in the intensity-gradient plot of region of interest using Hough transform algorithm.
 
@@ -116,7 +110,7 @@ Results for ```cv2.HoughLinesP``` using parameters ```rho = 1```, ```theta = Pi/
 
 In order to draw a single line on the left and right lanes, I was informed to modify the draw_lines() function instead of a serious of lines on the image in step3. So before we merge that, let's analysis the input lines in detail:
 
-There are 21 resulting lines after step3 for ```whiteCarLaneSwith.jpg```. Let's take a look 
+There are 21 resulting lines after step3 for ```whiteCarLaneSwith.jpg```. Let's take a look
 
 
  num | x1	|y1|	x2|	y2
@@ -133,7 +127,7 @@ We found:
 - A group of lines on the left for left lane line  and the same for right.
 - Some noise introduced by the existence of other objects, but not so long.
 
-To present these kind of co-linearty, some **feature engineering** were performed for the 4 columns of these data. ```slope```, ```bias``` and ```length``` for these lines were calculated using some basic mathmatics. 
+To present these kind of co-linearty, some **feature engineering** were performed for the 4 columns of these data. ```slope```, ```bias``` and ```length``` for these lines were calculated using some basic mathmatics.
 
 ```python
 pd_lines['length']   = pd_lines.apply(lambda x: (x.x2-x.x1)**2+(x.y2-x.y1)**2, axis=1)**0.5
@@ -146,12 +140,12 @@ pd_lines['interval'] = pd_lines.apply(lambda x: int(x.length/10), axis=1)
 Furthermore, lines were divided into intervals each 10 pixel in order to increase the weight for long lines for average and/or extrapolate the line segment.
 
 ```python
-l_slope = np.array([ pd_lines.iloc[row_i]['slope']   for row_i in range(pd_lines.shape[0]) 
+l_slope = np.array([ pd_lines.iloc[row_i]['slope']   for row_i in range(pd_lines.shape[0])
                                                      for col_i in range(int(pd_lines.iloc[row_i]['interval']))  ])
-    
-l_bias  = np.array([ pd_lines.iloc[row_i]['bias']    for row_i in range(pd_lines.shape[0]) 
+
+l_bias  = np.array([ pd_lines.iloc[row_i]['bias']    for row_i in range(pd_lines.shape[0])
                                                      for col_i in range(int(pd_lines.iloc[row_i]['interval']))  ])
-    
+
 ```
 
 This could help reducing the variation for resulting ```slope``` and ```bias```
@@ -253,18 +247,20 @@ Then, the whole pipeline were rebuilt like this:
 <div style="width:200px">
 <div class="mermaid" id="i141">
         graph TD
-        
-       A["Raw images"] -- "RGB2HSV" --> A1["HSV format"] 
+
+       A["Raw images"] -- "RGB2HSV" --> A1["HSV format"]
        A1 -- "inRange([10,120,70], [40,255,255])" --> A2["Yellow Panel"]
        A1 -- "inRange([0,0,180], [255,25,255])" --> A3["White Panel"]
        A2 --"bitwise_or"--> A4["Merged Panel"]
        A3 --"bitwise_or"--> A4
-       A4 --"GaussianBlur + Canny" --> B["Canny Gradient"] 
+       A4 --"GaussianBlur + Canny" --> B["Canny Gradient"]
        B-- "ROI"--> C["Canny Gradient of Interest"]
        C -- "HoughLinesP" --> D["Candidate Lane Lines"]
-       D -- "draw_lines()" --> E["Road Lane Lines"]        
+       D -- "draw_lines()" --> E["Road Lane Lines"]
 </div>
 </div>
+
+![png](./image/FigureFlowV2.png)
 
 Some parameters were also changed:
 
